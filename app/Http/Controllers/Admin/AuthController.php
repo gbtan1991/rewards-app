@@ -17,37 +17,49 @@ class AuthController extends Controller
 
     // HANDLE LOGIN LOGIC
 
-    public function login(Request $request)
-    {
-        $credentials = $request->validate([
-            'username' => 'required|string',
-            'password' => 'required|string',
-        ]);
+   public function login(Request $request)
+{
+    $credentials = $request->validate([
+        'username' => 'required|string',
+        'password' => 'required|string',
+    ]);
 
-        // ATTEMPT LOGIN WITH 'ADMIN' GUARD
+    if (Auth::guard('admin')->attempt($credentials, $request->filled('remember'))) {
+        $admin = Auth::guard('admin')->user();
 
-        if (Auth::guard('admin')->attempt($credentials, $request->filled('remember'))) {
-            $request->session()->regenerate();
+        // 🔎 Check if account is not active
+        if ($admin->account_status !== 'active') {
+            $status = $admin->account_status; // e.g. "pending", "suspended", etc.
 
-            return redirect()->route('admin.dashboard')
-                ->with('success', 'Welcome back' . Auth::guard('admin')->user()->username);
+            Auth::guard('admin')->logout();
+
+            return back()->withErrors([
+                'username' => "Your account is {$status}. Please contact the administrator.",
+            ])->onlyInput('username');
         }
 
-        return back()->withErrors([
-            'username' => 'The provided credentials do not match our records.',
-        ])->onlyInput('username');
+        $request->session()->regenerate();
+
+        return redirect()->route('admin.dashboard')
+            ->with('success', 'Welcome back, ' . $admin->username);
     }
+
+    return back()->withErrors([
+        'username' => 'The provided credentials do not match our records.',
+    ])->onlyInput('username');
+}
+
 
     // LOGOUT
 
-    public function logout(Request $request) 
-    {
-        Auth::guard('admin')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+    public function logout(Request $request)
+{
+    Auth::guard('admin')->logout();
 
-        return redirect()->route('admin.login')
-            ->with('success', 'You have been logged out successfully.');
-    }
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect()->route('admin.showLoginForm');
+}
 
 }
