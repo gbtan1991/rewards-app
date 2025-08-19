@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\AdminController;
 
@@ -9,20 +10,18 @@ Route::get('/', function () {
         return redirect()->route('admin.dashboard');
     }
     return view('admin.auth.login');
-
 });
 
+// 🔑 Admin auth routes
 Route::prefix('admin')->name('admin.')->group(function() {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('showLoginForm');
     Route::post('/login', [AuthController::class, 'login'])->name('login');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::resource('admins', AdminController::class);
-
-
-    Route::middleware('auth:admin')->group(function() {
-        Route::get('/dashboard', function() {
-            return view('admin.dashboard');
-        })->name('dashboard');
-    });
+    Route::resource('admins', AdminController::class)->middleware('auth:admin');
 });
+
+// 🔑 Dashboard route OUTSIDE prefix
+Route::middleware('auth:admin')->get('/dashboard', function () {
+    return view('dashboard');
+})->name('admin.dashboard');
