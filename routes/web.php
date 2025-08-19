@@ -4,13 +4,18 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AuthController;
 
 Route::get('/', function () {
-    return view('welcome');
+    if (Auth::guard('admin')->check()) {
+        return redirect()->route('admin.dashboard');
+    }
+    return view('admin.auth.login');
+
 });
 
 Route::prefix('admin')->name('admin.')->group(function() {
-    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('showLoginForm');
     Route::post('/login', [AuthController::class, 'login'])->name('login');
-    Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
+    
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::middleware('auth:admin')->group(function() {
         Route::get('/dashboard', function() {
